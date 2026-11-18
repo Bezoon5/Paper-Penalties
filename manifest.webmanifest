@@ -1,0 +1,16 @@
+{
+  "name": "Paper Penalties",
+  "short_name": "Penalties",
+  "description": "A hand-drawn, two-phone penalty shootout. Pick a box, beat the keeper.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf8ef",
+  "theme_color": "#fbf8ef",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

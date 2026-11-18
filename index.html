@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paper Penalties</title>
+<meta name="description" content="A hand-drawn, two-phone penalty shootout. Pick a box, beat the keeper.">
+<meta name="theme-color" content="#fbf8ef">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Penalties">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@700&family=Patrick+Hand&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background-color:#fbf8ef;
+  background-image:
+    linear-gradient(to right, transparent 30px, rgba(226,90,90,.55) 30px, rgba(226,90,90,.55) 32px, transparent 32px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 27px, rgba(90,140,210,.28) 27px, rgba(90,140,210,.28) 28px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .40  0 0 0 0 .30  0 0 0 .10 0'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+  font-family:"Patrick Hand","Comic Sans MS","Chalkboard SE",cursive;
+  color:#2b2b2b;font-size:20px;line-height:1.35;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{max-width:520px;margin:0 auto;padding:12px 12px 32px 42px}
+.hidden{display:none!important}
+svg{display:block;width:100%;height:auto;-webkit-user-select:none;user-select:none;touch-action:manipulation;overflow:hidden}
+.btn{font:inherit;font-size:23px;width:100%;padding:9px 14px;margin:7px 0;background:rgba(255,255,255,.55);color:#222;
+  border:2.5px solid #2f2f2f;border-radius:255px 18px 225px 18px/18px 225px 18px 255px;cursor:pointer;box-shadow:2px 3px 0 rgba(0,0,0,.13)}
+.btn.go{background:repeating-linear-gradient(-28deg,rgba(76,176,66,.6) 0 3px,rgba(76,176,66,.3) 3px 6px)}
+.btn.blue{background:repeating-linear-gradient(-28deg,rgba(60,120,220,.45) 0 3px,rgba(60,120,220,.2) 3px 6px)}
+.btn.tilt{transform:rotate(-.8deg)}
+.btn.tilt2{transform:rotate(.7deg)}
+.btn:active{translate:1px 2px;box-shadow:none}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.link{border:none;background:none;box-shadow:none;text-decoration:underline;color:#555;font-size:19px;padding:6px}
+.row{display:flex;gap:12px}.row>*{flex:1}
+.field{margin:6px 0 10px}
+.field label{font-size:20px}
+input.line{font:inherit;font-size:26px;background:transparent;border:none;border-bottom:2px solid #444;width:100%;padding:0 4px;color:#1d3f9a;outline:none;border-radius:0}
+#codeIn{text-transform:uppercase;letter-spacing:12px;text-align:center;font-family:"Cabin Sketch",cursive;font-size:44px}
+.sticky{background:#fff3a0;padding:12px 16px;box-shadow:2px 5px 10px rgba(0,0,0,.18);transform:rotate(-1.3deg);margin:16px 4px;position:relative}
+.sticky.pink{background:#ffd3de;transform:rotate(1deg)}
+.sticky::before{content:"";position:absolute;top:-10px;left:50%;width:70px;height:20px;margin-left:-35px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.06);transform:rotate(-3deg)}
+.h{font-family:"Cabin Sketch",cursive;font-size:34px;margin:6px 0 2px}
+.note{color:#555;font-size:18px;margin:6px 0 0}
+.code{font-family:"Cabin Sketch",cursive;font-size:62px;letter-spacing:14px;text-align:center;color:#d9372b;margin:0}
+.prompt{text-align:center;font-size:25px;margin:4px 0 4px;min-height:34px}
+.status{text-align:center;color:#444;min-height:28px;font-size:19px;margin:6px 0}
+.win{font-family:"Cabin Sketch",cursive;font-size:36px;text-align:center;margin:0}
+.big{font-size:24px;text-align:center;margin:2px 0}
+.stats{color:#555;font-size:18px;text-align:center;margin-bottom:8px}
+.cell{cursor:pointer}
+.pro{display:block;margin:10px 0 0;font-size:21px}
+.pro input{width:22px;height:22px;vertical-align:-3px;accent-color:#3fae36}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="home">
+    <svg id="title" viewBox="0 0 400 270" aria-label="Paper Penalties"></svg>
+    <div class="field">
+      <label for="nameIn">Your name:</label>
+      <input class="line" id="nameIn" maxlength="14" placeholder="e.g. Dad" autocomplete="off">
+    </div>
+    <button class="btn go tilt" id="btnCpu">Play the computer</button>
+    <div class="row">
+      <button class="btn blue tilt2" id="btnHost" disabled>Host a game</button>
+      <button class="btn blue tilt" id="btnJoin" disabled>Join a game</button>
+    </div>
+    <p class="note" id="roomNote">Checking two-phone connection…</p>
+    <label class="pro"><input type="checkbox" id="proIn"> <b>Pro rules</b> <span class="note">— corners can miss, fingertip saves (host decides)</span></label>
+    <div class="sticky">
+      <b>House rules</b><br>
+      Shooter picks a box 1–9.<br>
+      Keeper dives to a side box (1, 4, 7, 3, 6, 9) or stays in the middle.<br>
+      Side box saves that box only. Middle saves 2, 5 and 8.<br>
+      5 kicks each, then sudden death.<br>
+      <b>Pro rules</b>: top corners (1, 3) miss 1 in 4, bottom corners (7, 9) miss 1 in 10. A side dive has a 50% chance to tip away a shot in the box just above or below it.
+    </div>
+  </section>
+
+  <section id="join" class="hidden">
+    <div class="h">Join a game</div>
+    <p class="note">Type the code from the host's phone.</p>
+    <div class="field" style="margin-top:14px"><input class="line" id="codeIn" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters"></div>
+    <p class="note" id="joinNote"></p>
+    <button class="btn go tilt" id="btnJoinGo">Join</button>
+    <button class="btn link" id="btnJoinBack">Back</button>
+  </section>
+
+  <section id="lobby" class="hidden">
+    <div class="h" id="lobbyTitle">Your game</div>
+    <div class="sticky pink" style="text-align:center">
+      <div class="note" style="margin:0">Game code</div>
+      <div class="code" id="lobbyCode">----</div>
+      <div class="note" id="lobbyNote"></div>
+    </div>
+    <button class="btn link" id="btnLobbyBack">Cancel</button>
+  </section>
+
+  <section id="game" class="hidden">
+    <svg id="score" viewBox="0 0 400 104"></svg>
+    <div style="text-align:right;margin:-4px 0 -6px"><button class="btn link" id="btnCrowd" style="width:auto;font-size:17px;padding:2px 8px"></button><button class="btn link" id="btnSound" style="width:auto;font-size:17px;padding:2px 4px"></button></div>
+    <div class="prompt" id="prompt"></div>
+    <svg id="scene" viewBox="0 0 400 300" aria-label="Paper pitch"></svg>
+    <div class="status" id="status"></div>
+    <button class="btn go tilt" id="btnLock" disabled>Lock in</button>
+    <button class="btn go tilt hidden" id="btnNext">Next kick</button>
+    <div class="sticky hidden" id="endPanel">
+      <div class="win" id="endWin"></div>
+      <div class="big" id="endScore"></div>
+      <div class="stats" id="endStats"></div>
+      <div class="row"><button class="btn go" id="btnRematch">Rematch</button><button class="btn" id="btnHome">Home</button></div>
+    </div>
+    <button class="btn link" id="btnQuit">Leave match</button>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){ const e=document.createElementNS(NS,tag); for(const k in (attrs||{})) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
+function txt(parent,str,attrs){ const t=el("text",attrs,parent); t.textContent=str; return t; }
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const easeOut=p=>1-Math.pow(1-p,3);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// Animation helper, stepped at ~12 fps for a hand-animated feel. Timer fallback so a paused page never sticks.
+function tween(dur,f,stepped){ return new Promise(res=>{ const t0=performance.now(); let done=false; const steps=Math.max(2,Math.round(dur/83));
+  const finish=()=>{ if(done) return; done=true; f(1); res(); };
+  function step(){ if(done) return; let p=Math.min(1,(performance.now()-t0)/dur); if(p>=1) return finish(); if(stepped!==false) p=Math.floor(p*steps)/steps; f(p); requestAnimationFrame(step); }
+  requestAnimationFrame(step); setTimeout(finish,dur+80); }); }
+
+/* ---------- hand-drawn toolkit ---------- */
+let _s=1; const R=()=>((_s=_s*16807%2147483647)-1)/2147483646;
+function seed(n){ _s=(Math.abs(Math.floor(n))*9301+49297)%2147483647||1; }
+const J=a=>(R()-.5)*2*a;
+const f1=n=>n.toFixed(1);
+function P(pts){ return "M"+pts.map(p=>f1(p[0])+" "+f1(p[1])).join(" L")+" Z"; }
+function C(cx,cy,r){ return `M${f1(cx-r)} ${f1(cy)} a${r} ${r} 0 1 0 ${f1(2*r)} 0 a${r} ${r} 0 1 0 ${f1(-2*r)} 0 Z`; }
+function rLine(x1,y1,x2,y2,j){ j=j==null?1:j; const len=Math.hypot(x2-x1,y2-y1), b=Math.min(2.5,len*.02)+j*.5;
+  return `M${f1(x1+J(j))} ${f1(y1+J(j))} Q${f1((x1+x2)/2+J(b))} ${f1((y1+y2)/2+J(b))} ${f1(x2+J(j))} ${f1(y2+J(j))} `; }
+function rPoly(pts,closed,j){ let d=""; const n=pts.length, segs=closed?n:n-1; for(let i=0;i<segs;i++){ const a=pts[i], b=pts[(i+1)%n]; d+=rLine(a[0],a[1],b[0],b[1],j); } return d; }
+function smooth(pts){ let d=`M${f1(pts[0][0])} ${f1(pts[0][1])}`; for(let i=1;i<pts.length-1;i++){ const mx=(pts[i][0]+pts[i+1][0])/2, my=(pts[i][1]+pts[i+1][1])/2; d+=` Q${f1(pts[i][0])} ${f1(pts[i][1])} ${f1(mx)} ${f1(my)}`; } const l=pts[pts.length-1]; return d+` L${f1(l[0])} ${f1(l[1])}`; }
+function rEllipse(cx,cy,rx,ry,j){ const N=14, st=R()*Math.PI*2, over=.3+R()*.35, pts=[]; for(let k=0;k<=N;k++){ const t=st+(Math.PI*2+over)*k/N, jr=1+J(j==null?.06:j); pts.push([cx+Math.cos(t)*rx*jr, cy+Math.sin(t)*ry*jr]); } return smooth(pts); }
+function pencil(parent,d,o){ o=o||{}; return el("path",{d,fill:"none",stroke:o.c||"#3a3a3a","stroke-width":o.w||1.4,"stroke-linecap":"round","stroke-linejoin":"round",opacity:o.o==null?.9:o.o},parent); }
+function defsOf(node){ const svg=node.ownerSVGElement||node; let d=svg.querySelector("defs"); if(!d){ d=el("defs",{}); svg.insertBefore(d,svg.firstChild); } return d; }
+let clipN=0;
+// Crayon scribble fill clipped to a shape
+function hatch(parent,shapeD,box,color,o){ o=o||{};
+  const id="k"+(clipN++); const cp=el("clipPath",{id},defsOf(parent)); el("path",{d:shapeD},cp);
+  const g=el("g",{"clip-path":`url(#${id})`},parent);
+  const [x,y,w,h]=box, cx=x+w/2, cy=y+h/2, D=Math.hypot(w,h)/2+4, gap=o.gap||2.6, ang=o.ang==null?-32:o.ang;
+  if(o.solid) el("path",{d:shapeD,fill:color,opacity:o.solid},g);
+  const pts=[]; let up=true; for(let t=-D;t<=D+gap;t+=gap){ pts.push([cx+t+J(.7),cy+(up?-D:D)+J(2)]); up=!up; }
+  el("path",{d:"M"+pts.map(p=>f1(p[0])+" "+f1(p[1])).join(" L"),fill:"none",stroke:color,"stroke-width":o.w||gap*1.05,"stroke-linejoin":"round","stroke-linecap":"round",opacity:o.o==null?.85:o.o,transform:`rotate(${ang} ${f1(cx)} ${f1(cy)})`},g);
+  return g;
+}
+function boxOf(pts){ const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); const x=Math.min(...xs), y=Math.min(...ys); return [x,y,Math.max(...xs)-x,Math.max(...ys)-y]; }
+function partPoly(g,pts,color,o){ o=o||{}; if(color) hatch(g,P(pts),boxOf(pts),color,{gap:o.gap||2.3,ang:o.ang,solid:o.solid==null?.38:o.solid}); pencil(g,rPoly(pts,true,.5),{w:o.w||1.3}); }
+function partCircle(g,cx,cy,r,color,o){ o=o||{}; if(color) hatch(g,C(cx,cy,r),[cx-r,cy-r,2*r,2*r],color,{gap:o.gap||2.2,ang:o.ang,solid:o.solid==null?.38:o.solid}); pencil(g,rEllipse(cx,cy,r,r,.05),{w:o.w||1.3}); }
+function armPts(x1,y1,x2,y2,w){ const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy), nx=-dy/L*w/2, ny=dx/L*w/2; return [[x1+nx,y1+ny],[x2+nx,y2+ny],[x2-nx,y2-ny],[x1-nx,y1-ny]]; }
+// Paper cut-out: white border + soft shadow behind the coloured drawing
+function cutout(parent,sil,draw){
+  const g=el("g",{},parent);
+  const sh=el("g",{transform:"translate(2.5,3.5)",opacity:.17},g), bd=el("g",{},g);
+  for(const d of sil){ el("path",{d,fill:"#000",stroke:"#000","stroke-width":8,"stroke-linejoin":"round"},sh); el("path",{d,fill:"#fffdf6",stroke:"#fffdf6","stroke-width":8,"stroke-linejoin":"round"},bd); }
+  draw(g); return g;
+}
+function grain(svg,w,h){ // paper tooth showing through crayon
+  const d=defsOf(svg); const fid="g"+(clipN++);
+  const fl=el("filter",{id:fid,x:0,y:0,width:"100%",height:"100%"},d);
+  el("feTurbulence",{type:"fractalNoise",baseFrequency:".9",numOctaves:2,seed:7},fl);
+  el("feColorMatrix",{values:"0 0 0 0 1  0 0 0 0 .99  0 0 0 0 .96  0 0 0 -3.2 1.75"},fl);
+  el("rect",{x:-20,y:-20,width:w+40,height:h+40,filter:`url(#${fid})`,"pointer-events":"none",opacity:.55},svg);
+}
+
+/* ---------- sound (synthesised with Web Audio; no files needed) ---------- */
+const SFX=(()=>{
+  let ctx=null, master=null, on=true, chantT=null, nbuf=null;
+  try{ on=localStorage.getItem("pp-sound")!=="off"; }catch(e){}
+  function ensure(){
+    if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
+      try{ ctx=new AC(); }catch(e){ return null; }
+      master=ctx.createGain(); master.gain.value=on?.9:0;
+      const comp=ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination); }
+    if(ctx.state==="suspended") ctx.resume().catch(()=>{});
+    return ctx;
+  }
+  const live=()=>ctx && on;
+  function noise(){ if(!nbuf){ const len=ctx.sampleRate*3; nbuf=ctx.createBuffer(1,len,ctx.sampleRate); const d=nbuf.getChannelData(0); let b=0; for(let i=0;i<len;i++){ const w=Math.random()*2-1; b=.97*b+.03*w; d[i]=w*.6+b*2.2; } } return nbuf; }
+  function nsrc(loop){ const s=ctx.createBufferSource(); s.buffer=noise(); s.loop=!!loop; return s; }
+  function filt(type,f,q){ const b=ctx.createBiquadFilter(); b.type=type; b.frequency.value=f; if(q!=null) b.Q.value=q; return b; }
+  function env(g,t,a,peak,hold,rel){ g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.setValueAtTime(peak,t+a+hold); g.gain.exponentialRampToValueAtTime(.0001,t+a+hold+rel); }
+  function chain(...n){ for(let i=0;i<n.length-1;i++) n[i].connect(n[i+1]); return n[n.length-1]; }
+  function burst(t,type,f,q,a,peak,hold,rel){ const s=nsrc(false), b=filt(type,f,q), g=ctx.createGain(); env(g,t,a,peak,hold,rel); chain(s,b,g,master); s.start(t,Math.random()*2); s.stop(t+a+hold+rel+.05); return b; }
+  function tone(t,type,f0,f1,dur,peak,a){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type; o.frequency.setValueAtTime(f0,t); if(f1!==f0) o.frequency.exponentialRampToValueAtTime(f1,t+dur); env(g,t,a||.005,peak,0,dur); chain(o,g,master); o.start(t); o.stop(t+dur+.05); return o; }
+
+  // Crowd: ~22 synthetic "voices" (buzzy tones shaped into vowel sounds) chattering at random,
+  // over a soft low rumble. Mood changes make them roar ("aaah") or groan ("ooh").
+  let crowd=null, crowdT=null, crowdOn=true, mood={level:1,pitch:1,vowel:"a"}, moodTs=[];
+  try{ crowdOn=localStorage.getItem("pp-crowd")!=="off"; }catch(e){}
+  const VOWELS={a:[650,1100],oo:[360,820],roar:[760,1250]};
+  function startCrowd(){
+    if(!crowdOn||!ensure()||crowd) return;
+    const t=ctx.currentTime, out=ctx.createGain(); out.gain.setValueAtTime(.0001,t); out.gain.exponentialRampToValueAtTime(1.5,t+2.5);
+    const warm=filt("lowpass",1800,.5); chain(warm,out,master);
+    const src=nsrc(true), lp=filt("lowpass",200), lg=ctx.createGain(); lg.gain.value=.035; chain(src,lp,lg,warm); src.start(t,Math.random()*2);
+    const voices=[];
+    for(let i=0;i<22;i++){
+      const o=ctx.createOscillator(); o.type="sawtooth";
+      const base=i%3===0?185+Math.random()*70:95+Math.random()*55; o.frequency.value=base;
+      const f1=filt("bandpass",650,6), f2=filt("bandpass",1100,9), g2=ctx.createGain(); g2.gain.value=.5;
+      const vg=ctx.createGain(); vg.gain.value=0;
+      o.connect(f1); o.connect(f2); f2.connect(g2); f1.connect(vg); g2.connect(vg); vg.connect(warm);
+      o.start(t+Math.random()*.6);
+      voices.push({o,f1,f2,vg,base,j1:.85+Math.random()*.3,j2:.85+Math.random()*.3});
+    }
+    crowd={out,src,voices};
+    tickVoices();
+  }
+  function tickVoices(){
+    if(!crowd) return; const t=ctx.currentTime, [F1,F2]=VOWELS[mood.vowel], busy=mood.level>2;
+    for(const v of crowd.voices){
+      if(!busy && Math.random()>.35) continue;
+      const silent=Math.random()<(busy?.05:.35);
+      v.vg.gain.setTargetAtTime(silent?0:(.012+Math.random()*.028)*mood.level,t,busy?.08:.05);
+      v.o.frequency.setTargetAtTime(v.base*mood.pitch*(.92+Math.random()*.2),t,.12);
+      v.f1.frequency.setTargetAtTime(F1*v.j1,t,.1); v.f2.frequency.setTargetAtTime(F2*v.j2,t,.1);
+    }
+    crowdT=setTimeout(tickVoices,100+Math.random()*120);
+  }
+  function setMood(steps){ moodTs.forEach(clearTimeout); moodTs=steps.map(([ms,m])=>setTimeout(()=>{ mood={...mood,...m}; },ms)); }
+  function stopCrowd(){ if(!crowd) return; const c=crowd; crowd=null; clearTimeout(crowdT); const t=ctx.currentTime;
+    c.out.gain.setTargetAtTime(.0001,t,.3); setTimeout(()=>{ try{ c.src.stop(); c.voices.forEach(v=>v.o.stop()); }catch(e){} },1600); }
+  function roar(level){ if(!live()) return; level=level||1;
+    setMood([[0,{level:4.2*level,pitch:1.3,vowel:"roar"}],[1700,{level:2.2,pitch:1.12}],[3500,{level:1,pitch:1,vowel:"a"}]]);
+    if(crowd){ const t=ctx.currentTime; const b=burst(t,"bandpass",850,.8,.3,.12*level,1,2); b.frequency.linearRampToValueAtTime(1100,t+.5); } }
+  function ooh(){ if(!live()) return;
+    setMood([[0,{level:3.2,pitch:1.2,vowel:"oo"}],[450,{pitch:.95}],[900,{pitch:.85,level:2.4}],[1700,{level:1,pitch:1,vowel:"a"}]]); }
+  function toggleCrowd(){ crowdOn=!crowdOn; try{ localStorage.setItem("pp-crowd",crowdOn?"on":"off"); }catch(e){}
+    if(crowdOn){ unlock(); if(screen==="game") startCrowd(); } else stopCrowd(); }
+  function whistle(n,len){ if(!live()) return; n=n||1; len=len||.3; let t=ctx.currentTime+.02;
+    for(let k=0;k<n;k++){ const l=(n>1&&k===n-1)?len*2.2:len;
+      const o=ctx.createOscillator(), lfo=ctx.createOscillator(), lg=ctx.createGain(), g=ctx.createGain(), bp=filt("bandpass",2900,3);
+      o.type="triangle"; o.frequency.value=2850; lfo.frequency.value=34; lg.gain.value=160; chain(lfo,lg); lg.connect(o.frequency);
+      env(g,t,.03,.07,l,.08); chain(o,bp,g,master); o.start(t); lfo.start(t); o.stop(t+l+.12); lfo.stop(t+l+.12);
+      burst(t,"highpass",3500,null,.03,.012,l,.08);
+      t+=l+.18; } }
+  function kick(){ if(!live()) return; const t=ctx.currentTime; tone(t,"sine",170,45,.16,.9); burst(t,"bandpass",1600,1.2,.002,.35,.01,.05); }
+  function thud(){ if(!live()) return; const t=ctx.currentTime; tone(t,"sine",130,60,.14,.7); burst(t,"lowpass",900,null,.003,.4,.02,.12); }
+  function clang(){ if(!live()) return; const t=ctx.currentTime; for(const [f,pk] of [[520,.16],[1310,.1],[2150,.06],[3400,.03]]) tone(t,"sine",f,f*.995,.9,pk,.002); }
+  function net(){ if(!live()) return; const t=ctx.currentTime; burst(t,"highpass",1900,null,.01,.3,.05,.4); }
+  function horn(){ if(!live()) return; const t=ctx.currentTime+.15;
+    for(const f of [185,233,277]){ const o=ctx.createOscillator(), g=ctx.createGain(), lp=filt("lowpass",1100); o.type="sawtooth"; o.frequency.value=f*(1+Math.random()*.004); env(g,t,.06,.07,1.1,.35); chain(o,lp,g,master); o.start(t); o.stop(t+1.6); } }
+  function drum(t,v){ tone(t,"sine",90,42,.32,.55*v,.004); burst(t,"lowpass",300,null,.002,.15*v,.01,.12); }
+  function clap(t,v){ for(let k=0;k<3;k++) burst(t+k*.012,"bandpass",1400,1.4,.001,.12*v,.004,.06); }
+  // Terrace chant: boom, boom, clap-clap-clap
+  function chantBar(){ if(!live()) return; const t=ctx.currentTime+.05; drum(t,1); drum(t+.42,1); clap(t+.84,1); clap(t+1.0,1); clap(t+1.16,1); }
+  function chant(onOff){ if(onOff){ if(chantT) return; chantBar(); chantT=setInterval(chantBar,4200); } else { clearInterval(chantT); chantT=null; } }
+  // Victory music: a brassy stadium fanfare
+  function fanfare(){ if(!live()) return; const t0=ctx.currentTime+.05;
+    const notes=[[0,392,.16],[.18,523,.16],[.36,659,.16],[.54,784,.5],[1.1,659,.16],[1.28,784,.9]];
+    for(const [dt,f,d] of notes) for(const det of [1,1.004,.996]){ const o=ctx.createOscillator(), g=ctx.createGain(), lp=filt("lowpass",2200); o.type="sawtooth"; o.frequency.value=f*det; env(g,t0+dt,.03,.05,d,.2); chain(o,lp,g,master); o.start(t0+dt); o.stop(t0+dt+d+.3); }
+    for(const f of [131,196,262]){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type="triangle"; o.frequency.value=f; env(g,t0+1.28,.05,.08,.9,.4); chain(o,g,master); o.start(t0+1.28); o.stop(t0+2.8); } }
+  function unlock(){ if(!on) return; const c=ensure(); if(!c) return; try{ const b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){} }
+  function toggle(){ on=!on; try{ localStorage.setItem("pp-sound",on?"on":"off"); }catch(e){}
+    if(on){ unlock(); if(master) master.gain.setTargetAtTime(.9,ctx.currentTime,.05); if(screen==="game") startCrowd(); }
+    else if(master) master.gain.setTargetAtTime(0,ctx.currentTime,.05); }
+  return {clang,unlock,toggle,toggleCrowd,crowdIsOn:()=>crowdOn,isOn:()=>on,startCrowd,stopCrowd,roar,ooh,whistle,kick,thud,net,horn,chant,fanfare};
+})();
+
+/* ---------- characters ---------- */
+const KIT={skin:"#f3c7a0",hair:"#6b4423",shorts:"#2b2b2b"};
+const TEAMS={1:{name:"Reds",shirt:"#d9372b",dark:"#7a1d14",keeper:"#3fae36",gloves:"#f2c230"},
+             2:{name:"Blues",shirt:"#2f6fd6",dark:"#1d3f7a",keeper:"#f2c230",gloves:"#3fae36"}};
+const KEEPER_GLOVE=[30,-63]; // local glove position (right); left is mirrored
+function makeKeeper(parent,team){
+  const T=TEAMS[team];
+  seed(42);
+  const legL=[[-14,2],[-4,2],[-5,30],[-15,30]], legR=legL.map(([x,y])=>[-x,y]);
+  const shorts=[[-16,-6],[16,-6],[17,10],[1,10],[0,6],[-1,10],[-17,10]];
+  const torso=[[-16,-4],[16,-4],[18,-40],[9,-45],[-9,-45],[-18,-40]];
+  const armL=armPts(-14,-39,-30,-61,8), armR=armPts(14,-39,30,-61,8);
+  const sil=[P(legL),P(legR),P(shorts),P(torso),P(armL),P(armR),C(-30,-63,6.5),C(30,-63,6.5),C(0,-55,10.5),C(-10,32,5),C(10,32,5)];
+  return cutout(parent,sil,g=>{
+    partPoly(g,legL,T.keeper); partPoly(g,legR,T.keeper);
+    partCircle(g,-10,32,4.6,"#333",{solid:.7}); partCircle(g,10,32,4.6,"#333",{solid:.7});
+    partPoly(g,shorts,KIT.shorts,{solid:.55});
+    partPoly(g,armL,T.keeper); partPoly(g,armR,T.keeper);
+    partPoly(g,torso,T.keeper,{ang:-25});
+    txt(g,"1",{x:0,y:-14,"text-anchor":"middle","font-size":20,"font-family":"Patrick Hand,cursive",fill:"#333"});
+    partCircle(g,-30,-63,6,T.gloves); partCircle(g,30,-63,6,T.gloves);
+    partCircle(g,0,-55,10,KIT.skin,{solid:.55,gap:2.6});
+    pencil(g,"M-10 -58 Q-6 -68 0 -66 Q6 -68 10 -58",{w:3.2,c:KIT.hair,o:.85});
+    pencil(g,"M-8 -61 Q0 -67 8 -61",{w:2.4,c:KIT.hair,o:.8});
+    el("circle",{cx:-3.6,cy:-55,r:1.3,fill:"#333"},g); el("circle",{cx:3.6,cy:-55,r:1.3,fill:"#333"},g);
+    pencil(g,"M-4 -50.5 Q0 -47.5 4 -50.5",{w:1.2});
+  });
+}
+function makeTaker(parent,team,num){
+  const T=TEAMS[team];
+  seed(77);
+  const legL=[[-11,-1],[-3,-1],[-3,-24],[-11,-24]], legR=legL.map(([x,y])=>[-x,y]);
+  const sockL=[[-11,-1],[-3,-1],[-3,-11],[-11,-11]], sockR=sockL.map(([x,y])=>[-x,y]);
+  const shorts=[[-13,-21],[13,-21],[12,-32],[-12,-32]];
+  const shirt=[[-13,-30],[13,-30],[15,-51],[8,-55],[-8,-55],[-15,-51]];
+  const armL=armPts(-14,-50,-19,-31,6), armR=armPts(14,-50,19,-31,6);
+  const sil=[P(legL),P(legR),P(shorts),P(shirt),P(armL),P(armR),C(0,-62,8.5),C(-7,0,4.5),C(7,0,4.5)];
+  return cutout(parent,sil,g=>{
+    partPoly(g,legL,KIT.skin,{solid:.5}); partPoly(g,legR,KIT.skin,{solid:.5});
+    partPoly(g,sockL,T.shirt); partPoly(g,sockR,T.shirt);
+    partCircle(g,-7,0,4,"#333",{solid:.7}); partCircle(g,7,0,4,"#333",{solid:.7});
+    partPoly(g,armL,KIT.skin,{solid:.5}); partPoly(g,armR,KIT.skin,{solid:.5});
+    partPoly(g,shorts,"#e9e9e9",{solid:.2,gap:3});
+    partPoly(g,shirt,T.shirt,{ang:30});
+    txt(g,String(num),{x:0,y:-35,"text-anchor":"middle","font-size":num>9?15:17,"font-family":"Cabin Sketch,cursive",fill:"#fff",stroke:T.dark,"stroke-width":.6});
+    partCircle(g,0,-62,8,KIT.hair,{solid:.6,gap:2});
+  });
+}
+function makeBall(parent){
+  seed(5);
+  return cutout(parent,[C(0,0,10)],g=>{
+    partCircle(g,0,0,10,null,{w:1.4});
+    const pent=[]; for(let k=0;k<5;k++){ const a=(-90+72*k)*Math.PI/180; pent.push([Math.cos(a)*3.6,Math.sin(a)*3.6]); }
+    partPoly(g,pent,"#222",{solid:.8,gap:1.4,w:1});
+    for(let k=0;k<5;k++){ const a=(-90+72*k)*Math.PI/180; pencil(g,rLine(Math.cos(a)*3.6,Math.sin(a)*3.6,Math.cos(a)*9.4,Math.sin(a)*9.4,.3),{w:1}); }
+  });
+}
+// Lolly stick from the keeper's back down to the (off-screen) hand
+function stickPath(x1,y1,x2,y2,w){ return P(armPts(x1,y1,x2,y2,w)); }
+
+/* ---------- rules ---------- */
+const GX=63, GY=53, GW=274, GH=147, CW=GW/3, CH=GH/3;
+function boxCenter(b){ const i=b-1, c=i%3, r=Math.floor(i/3); return {x:GX+CW*c+CW/2, y:GY+CH*r+CH/2}; }
+// keeper picks: 1,3,4,6,7,9 = side boxes, 5 = stay in middle (covers 2,5,8)
+function isSave(shot,keep){ return keep===5 ? (shot===2||shot===5||shot===8) : shot===keep; }
+function keepLabel(k){ return k===5 ? "middle" : String(k); }
+const PRO_MISS={1:.25,3:.25,7:.1,9:.1};
+// Same "dice roll" on both phones: derived from game code, match number and kick number
+function roll(i,salt){ let h=hashCode(S.code+"|"+S.m+"|"+i+"|"+salt); h^=h>>>13; h=Math.imul(h,0x5bd1e995)>>>0; h^=h>>>15; return (h>>>0)/4294967296; }
+function kickResult(i){
+  const me=shooterIsMe(i), shot=me?S.myPicks[i]:S.oppPicks[i], keep=me?S.oppPicks[i]:S.myPicks[i];
+  if(S.pro && PRO_MISS[shot] && roll(i,"miss")<PRO_MISS[shot])
+    return {res:"miss",shot,keep,kind: shot<=3 ? (roll(i,"k")<.5?"bar":"over") : (roll(i,"k")<.5?"post":"wide")};
+  if(isSave(shot,keep)) return {res:"save",shot,keep};
+  if(S.pro && keep!==5 && (keep-1)%3===(shot-1)%3 && Math.abs(keep-shot)===3 && roll(i,"tip")<.5) return {res:"save",shot,keep,tip:true};
+  return {res:"goal",shot,keep};
+}
+
+/* ---------- state ---------- */
+const S={ pro:false, mode:null, myName:"", oppName:"", code:"", host:true, m:0,
+  myPicks:[], oppPicks:[], myLocked:0, oppLocked:0, pending:null, shown:0,
+  animating:false, awaitingNext:false, over:null, choice:null,
+  oppHere:false, oppM:0, lastResult:"", intro:false };
+function hashCode(s){ let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))>>>0; return h; }
+function firstShooterIsMe(){ const firstHost=((hashCode(S.code)+S.m)%2)===0; return firstHost===S.host; }
+function shooterIsMe(i){ return (i%2===0)===firstShooterIsMe(); }
+function myTeam(){ return S.host?1:2; }
+function teamOf(side){ return side==="me"?myTeam():3-myTeam(); }
+// Each team's takers wear 1–11 in a shuffled order (same on both phones)
+function shirtNumbers(team){ const arr=[1,2,3,4,5,6,7,8,9,10,11]; seed(hashCode(S.code)+S.m*7+team*1000); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(R()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function kickDress(i){ const st=teamOf(shooterIsMe(i)?"me":"opp"); return {st, kt:3-st, num:shirtNumbers(st)[Math.floor(i/2)%11]}; }
+function tally(n){
+  const t={me:{att:0,goals:0,res:[],saves:0},opp:{att:0,goals:0,res:[],saves:0}};
+  for(let i=0;i<n;i++){
+    const side=shooterIsMe(i)?"me":"opp", other=side==="me"?"opp":"me";
+    const r=kickResult(i), g=r.res==="goal";
+    t[side].att++; if(g) t[side].goals++; if(r.res==="save") t[other].saves++;
+    t[side].res.push(g);
+  }
+  return t;
+}
+function outcome(n){
+  const t=tally(n);
+  const first=firstShooterIsMe()?"me":"opp", second=first==="me"?"opp":"me";
+  const aG=t[first].goals, bG=t[second].goals;
+  if(n<=10){
+    const aRem=5-t[first].att, bRem=5-t[second].att;
+    if(aG>bG+bRem) return first;
+    if(bG>aG+aRem) return second;
+    return null;
+  }
+  if(n%2===0 && aG!==bG) return aG>bG?first:second;
+  return null;
+}
+
+/* ---------- title screen ---------- */
+function buildTitle(){
+  const t=$("#title"); seed(9);
+  // doodled goal
+  const g=el("g",{},t);
+  const gx=110, gy=150, gw=180, gh=96;
+  for(let k=0;k<2;k++) pencil(g,rPoly([[gx,gy+gh],[gx,gy],[gx+gw,gy],[gx+gw,gy+gh]],false,1),{w:k?1:2.2,o:k?.5:.9});
+  for(let i=1;i<3;i++){ pencil(g,rLine(gx+gw*i/3,gy,gx+gw*i/3,gy+gh,.8),{w:1,o:.45,c:"#3b6fd6"}); pencil(g,rLine(gx,gy+gh*i/3,gx+gw,gy+gh*i/3,.8),{w:1,o:.45,c:"#3b6fd6"}); }
+  for(let b=1;b<=9;b++){ const c=(b-1)%3, r=Math.floor((b-1)/3); txt(g,String(b),{x:gx+gw*c/3+9,y:gy+gh*r/3+15,"font-size":13,"font-family":"Patrick Hand,cursive",fill:"#3b6fd6",opacity:.8}); }
+  pencil(g,rLine(gx-40,gy+gh,gx+gw+40,gy+gh,1.2),{w:1.6});
+  // puppet keeper on a stick, diving
+  const kx=170, ky=215;
+  el("path",{d:stickPath(kx-2,ky-8,140,300,8),fill:"#dcb27a",stroke:"#7a5a33","stroke-width":1.1},g);
+  const k=makeKeeper(g,1); k.setAttribute("transform",`translate(${kx},${ky}) rotate(-38) scale(.62)`);
+  // ball flying into box 3 with motion lines
+  const b=makeBall(g); b.setAttribute("transform","translate(262,170) scale(.9)");
+  seed(3);
+  for(let i=0;i<3;i++) pencil(g,rLine(236-i*4,186+i*7,212-i*8,204+i*9,.6),{w:1.3,o:.6});
+  // title lettering
+  const t1=txt(t,"Paper",{x:196,y:70,"text-anchor":"middle","font-size":70,"font-family":"Cabin Sketch,cursive","font-weight":700,fill:"#2f6fd6",stroke:"#1d3f7a","stroke-width":1.2,transform:"rotate(-5 196 60)"});
+  const t2=txt(t,"Penalties",{x:206,y:132,"text-anchor":"middle","font-size":62,"font-family":"Cabin Sketch,cursive","font-weight":700,fill:"#e0442f",stroke:"#7a1d14","stroke-width":1.2,transform:"rotate(2 206 120)"});
+  seed(21);
+  pencil(t,smooth([[90,142],[150,146],[220,140],[300,147],[330,143]]),{w:4,c:"#4cb042",o:.75});
+  pencil(t,smooth([[100,148],[170,150],[250,145],[322,150]]),{w:2.2,c:"#4cb042",o:.6});
+  // little stars
+  seed(30);
+  for(const [x,y] of [[52,40],[350,92],[40,118]]){ for(let i=0;i<3;i++){ const a=i*Math.PI/3; pencil(t,rLine(x-Math.cos(a)*7,y-Math.sin(a)*7,x+Math.cos(a)*7,y+Math.sin(a)*7,.4),{w:1.6,c:"#f2a930"}); } }
+  grain(t,400,270);
+}
+
+/* ---------- pitch ---------- */
+const svg=$("#scene");
+let keeperWrap, takerWrap, stick, ballG, ballShadow, trail, taker, gridShoot, gridKeep, banner, bannerOutline, bannerSub, swish;
+const shootSel={}, keepSel={};
+const KEEP={x:200,y:166,a:0}; // current keeper pose (hip position + rotation)
+let wobble={a:0,y:0};
+
+function buildScene(){
+  seed(3);
+  buildCrowd();
+  // advertising hoarding along the back of the pitch
+  const hb=[[-5,166],[405,163],[405,186],[-5,188]];
+  el("path",{d:P(hb),fill:"#fffdf6",opacity:.9},svg);
+  hatch(svg,P(hb),[-5,163,410,25],"#2f6fd6",{gap:5,w:3,o:.25,ang:-30});
+  pencil(svg,rPoly(hb,true,.8),{w:1.4});
+  for(const x of [18,312]) txt(svg,"PAPER PENALTIES",{x,y:181,"font-size":13,"font-family":"Cabin Sketch,cursive","font-weight":700,fill:"#d9372b",transform:`rotate(-.5 ${x} 178)`});
+  // green crayon grass, only on the pitch
+  const grass=[[-5,187],[405,185],[405,305],[-5,305]];
+  hatch(svg,P(grass),[-5,185,410,120],"#5cb34e",{gap:5,w:3.6,o:.42,ang:-18,solid:.16});
+  hatch(svg,P(grass),[-5,185,410,120],"#4a9e3f",{gap:9,w:2.4,o:.22,ang:28});
+  pencil(svg,rLine(-5,187,405,185,1),{w:1.2,o:.5});
+  // white crayon lines
+  const W={c:"#fffdf6",w:3,o:.95};
+  pencil(svg,rLine(0,200,400,200,1.2),W);
+  pencil(svg,rPoly([[108,200],[96,227],[304,227],[292,200]],false,1),W);
+  pencil(svg,rPoly([[30,200],[2,292],[398,292],[370,200]],false,1.2),W);
+  pencil(svg,rEllipse(200,265,4,2,.2),{c:"#fffdf6",w:3});
+  // net (pencil cross-hatch)
+  const net=el("g",{},svg);
+  const back=[[78,66],[322,66],[322,188],[78,188]];
+  const panels=[back,[[63,53],[78,66],[78,188],[63,200]],[[337,53],[322,66],[322,188],[337,200]],[[63,53],[337,53],[322,66],[78,66]]];
+  for(const pts of panels){
+    el("path",{d:P(pts),fill:"#fffdf6",opacity:.82},net);
+    const id="k"+(clipN++); const cp=el("clipPath",{id},defsOf(svg)); el("path",{d:P(pts)},cp);
+    const g=el("g",{"clip-path":`url(#${id})`},net); let d="";
+    for(let x=40;x<380;x+=10){ d+=rLine(x,40,x+150,210,.6); d+=rLine(x+150,40,x,210,.6); }
+    pencil(g,d,{w:.7,o:.4,c:"#555"});
+  }
+  pencil(svg,rPoly(back,true,.8),{w:1.1,o:.6});
+  pencil(svg,rLine(63,53,78,66,.5)+rLine(337,53,322,66,.5)+rLine(63,200,78,188,.5)+rLine(337,200,322,188,.5),{w:1.1,o:.6});
+  // posts + bar
+  for(const pts of [[[56,48],[63,48],[63,202],[56,202]],[[337,48],[344,48],[344,202],[337,202]],[[56,46],[344,46],[344,53],[56,53]]]){
+    el("path",{d:P(pts),fill:"#fffdf6"},svg); pencil(svg,rPoly(pts,true,.6),{w:1.5});
+  }
+  // keeper on a stick
+  stick=el("g",{},svg);
+  keeperWrap=el("g",{},svg);
+  // ball
+  ballShadow=el("ellipse",{cx:200,cy:270,rx:10,ry:3.4,fill:"#2a4a22",opacity:.25},svg);
+  trail=el("path",{d:"",fill:"none",stroke:"#555","stroke-width":1.3,"stroke-linecap":"round","stroke-dasharray":"5 5",opacity:0},svg);
+  swish=el("g",{opacity:0,"pointer-events":"none"},svg);
+  takerWrap=el("g",{},svg);
+  ballG=makeBall(svg);
+  buildGrids();
+  bannerOutline=null;
+  banner=txt(svg,"",{"pointer-events":"none",x:200,y:142,"text-anchor":"middle","font-size":62,"font-family":"Cabin Sketch,cursive","font-weight":700,fill:"#fff",stroke:"#fffdf6","stroke-width":7,"paint-order":"stroke","stroke-linejoin":"round",transform:"rotate(-5 200 130)",opacity:0});
+  bannerSub=txt(svg,"",{"pointer-events":"none",x:200,y:178,"text-anchor":"middle","font-size":21,"font-family":"Patrick Hand,cursive",fill:"#2b2b2b",stroke:"#fffdf6","stroke-width":5,"paint-order":"stroke",opacity:0});
+  grain(svg,400,300);
+  // idle hand wobble: the off-screen hand never holds perfectly still
+  setInterval(()=>{ if(S.animating) return; wobble={a:J(2.2),y:J(1.2)}; drawKeeper(); },160);
+}
+
+// Hand-drawn crowd in the stand behind the goal; arms go up when a goal goes in
+let crowdUp, crowdDown;
+function buildCrowd(){
+  seed(64);
+  const cols=["#d9372b","#2f6fd6","#d9372b","#2f6fd6","#f2c230","#3fae36","#888",null];
+  crowdDown=el("g",{},svg); crowdUp=el("g",{style:"display:none"},svg);
+  const rows=[18,40,62,84,106,128,150];
+  rows.forEach((y,ri)=>{
+    const off=ri%2?8:0;
+    for(let x=-6+off;x<410;x+=16){
+      const cx=x+J(2.5), cy=y+J(2), c=cols[Math.floor(R()*cols.length)];
+      const body=[[cx-7,cy+16],[cx-6,cy+8],[cx,cy+6],[cx+6,cy+8],[cx+7,cy+16]];
+      for(const g of [crowdDown,crowdUp]){
+        if(c) el("path",{d:P(body),fill:c,opacity:.5},g);
+        pencil(g,smooth(body),{w:1,o:.75});
+        if(g===crowdUp){
+          const wave=R()<.75;
+          if(wave){ pencil(g,rLine(cx-5,cy+9,cx-9,cy-3,.4)+rLine(cx+5,cy+9,cx+9,cy-3,.4),{w:1.2,o:.8}); }
+          if(R()<.15 && c) { const fx=cx+9, fy=cy-4; el("path",{d:P([[fx,fy],[fx+11,fy+3],[fx,fy+7]]),fill:c,opacity:.7},g); pencil(g,rLine(fx,fy-1,fx,fy+14,.2),{w:1}); }
+        }
+        el("circle",{cx,cy,r:4.6,fill:"#fffdf6"},g);
+        pencil(g,rEllipse(cx,cy,4.6,4.8,.08),{w:1,o:.8});
+      }
+    }
+  });
+}
+let cheerT=null;
+function crowdCheer(ms){
+  clearInterval(cheerT); let k=0, n=Math.round(ms/160);
+  crowdDown.style.display="none"; crowdUp.style.display="";
+  cheerT=setInterval(()=>{ k++; crowdUp.setAttribute("transform",`translate(0,${k%2?-2.5:0})`);
+    if(k>=n){ clearInterval(cheerT); crowdUp.style.display="none"; crowdDown.style.display=""; crowdUp.removeAttribute("transform"); } },160);
+}
+function buildGrids(){
+  seed(12);
+  const cellPts=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+  const mkCell=(parent,sel,b,x,y,w,h,label,label2)=>{
+    const g=el("g",{class:"cell"},parent);
+    el("rect",{x,y,width:w,height:h,fill:"#fffdf6",opacity:.18},g);
+    const hl=hatch(g,P(cellPts(x,y,w,h)),[x,y,w,h],"#ffd83d",{gap:4,w:4.5,o:.8,ang:-35,solid:.25}); hl.style.display="none"; sel[b]=hl;
+    pencil(g,rPoly(cellPts(x,y,w,h),true,.9),{c:"#2f5fc4",w:1.6,o:.8});
+    const fs=label2?18:28;
+    txt(g,label,{x:x+w/2,y:y+h/2+(label2?-4:9),"text-anchor":"middle","font-size":fs,"font-family":"Patrick Hand,cursive",fill:"#1d3f9a",stroke:"#fffdf6","stroke-width":4,"paint-order":"stroke","pointer-events":"none"});
+    if(label2) txt(g,label2,{x:x+w/2,y:y+h/2+18,"text-anchor":"middle","font-size":17,"font-family":"Patrick Hand,cursive",fill:"#1d3f9a",stroke:"#fffdf6","stroke-width":4,"paint-order":"stroke","pointer-events":"none"});
+    g.addEventListener("click",()=>choose(b));
+  };
+  gridShoot=el("g",{},svg);
+  for(let b=1;b<=9;b++){ const c=(b-1)%3, r=Math.floor((b-1)/3); mkCell(gridShoot,shootSel,b,GX+c*CW+3,GY+r*CH+3,CW-6,CH-6,String(b)); }
+  gridKeep=el("g",{},svg);
+  for(const b of [1,4,7,3,6,9]){ const c=(b-1)%3, r=Math.floor((b-1)/3); mkCell(gridKeep,keepSel,b,GX+c*CW+3,GY+r*CH+3,CW-6,CH-6,String(b)); }
+  mkCell(gridKeep,keepSel,5,GX+CW+3,GY+3,CW-6,GH-6,"MIDDLE","2 · 5 · 8");
+}
+function highlight(){
+  for(const b in shootSel) shootSel[b].style.display=S.choice===+b?"":"none";
+  for(const b in keepSel) keepSel[b].style.display=S.choice===+b?"":"none";
+}
+const keeperCache={}, takerCache={};
+function dress(i){
+  const d=kickDress(i);
+  if(!keeperCache[d.kt]){ const g=el("g",{},keeperWrap); makeKeeper(g,d.kt); keeperCache[d.kt]=g; }
+  const tk=d.st+"-"+d.num;
+  if(!takerCache[tk]){ const g=el("g",{},takerWrap); makeTaker(g,d.st,d.num); takerCache[tk]=g; }
+  keeperWrap.replaceChildren(keeperCache[d.kt]); takerWrap.replaceChildren(takerCache[tk]);
+}
+function rot(v,a){ const r=a*Math.PI/180, c=Math.cos(r), s=Math.sin(r); return [v[0]*c-v[1]*s, v[0]*s+v[1]*c]; }
+function drawKeeper(){
+  const a=KEEP.a+(S.animating?0:wobble.a), x=KEEP.x, y=KEEP.y+(S.animating?0:wobble.y);
+  keeperWrap.setAttribute("transform",`translate(${f1(x)},${f1(y)}) rotate(${f1(a)})`);
+  const at=rot([0,-8],a); const ax=x+at[0], ay=y+at[1];
+  const hx=lerp(200,x,.5)+(S.animating?0:wobble.a*1.5), hy=345;
+  stick.textContent="";
+  el("path",{d:stickPath(ax,ay,hx,hy,9),fill:"#dcb27a",stroke:"#7a5a33","stroke-width":1.2,"stroke-linejoin":"round"},stick);
+  el("path",{d:`M${f1(lerp(ax,hx,.15))} ${f1(lerp(ay,hy,.15))} L${f1(lerp(ax,hx,.9))} ${f1(lerp(ay,hy,.9))}`,stroke:"#a77d4b","stroke-width":.8,opacity:.7},stick);
+}
+function setKeeper(x,y,a){ KEEP.x=x; KEEP.y=y; KEEP.a=a; drawKeeper(); }
+function setTaker(x,y){ takerWrap.setAttribute("transform",`translate(${f1(x)},${f1(y)}) scale(1.85)`); }
+function setBall(x,y,r,op){ ballG.setAttribute("transform",`translate(${f1(x)},${f1(y)}) scale(${(r/10).toFixed(3)})`); ballG.setAttribute("opacity",op==null?1:op); }
+function setShadow(x,y,rx,op){ ballShadow.setAttribute("cx",f1(x)); ballShadow.setAttribute("cy",f1(y)); ballShadow.setAttribute("rx",f1(rx)); ballShadow.setAttribute("ry",f1(rx*.34)); ballShadow.setAttribute("opacity",op==null?.25:op); }
+function resetScene(){
+  dress(S.shown);
+  setKeeper(200,166,0); setBall(200,262,10,1); setShadow(200,270,10); setTaker(112,322);
+  trail.setAttribute("opacity",0); swish.setAttribute("opacity",0); hideBanner();
+}
+function showBanner(text,color,sub,size){
+  banner.textContent=text; banner.setAttribute("fill",color||"#2b2b2b"); banner.setAttribute("font-size",size||62); banner.setAttribute("opacity",1);
+  bannerSub.textContent=sub||""; bannerSub.setAttribute("opacity",sub?1:0);
+}
+function hideBanner(){ banner.setAttribute("opacity",0); bannerSub.setAttribute("opacity",0); }
+
+function keeperPlan(shot,keep){
+  if(keep===5){
+    if(shot===2) return {x:200,y:boxCenter(2).y-KEEPER_GLOVE[1],a:0};
+    if(shot===8) return {x:200,y:178,a:0};
+    return {x:200,y:166,a:0};
+  }
+  return planToPoint(boxCenter(keep),keep);
+}
+function planToPoint(T,keep){
+  const side=(keep-1)%3===0?-1:1, v=[side*KEEPER_GLOVE[0],KEEPER_GLOVE[1]];
+  const base=Math.atan2(KEEPER_GLOVE[0],-KEEPER_GLOVE[1])*180/Math.PI; // glove angle from vertical
+  const theta=45+(T.y-boxCenter(1).y)/CH*25;                         // higher = more upright dive
+  const a=side*(theta-base), g=rot(v,a);
+  return {x:T.x-g[0], y:T.y-g[1], a};
+}
+function missPoint(shot,kind){
+  const b=boxCenter(shot), left=(shot-1)%3===0;
+  if(kind==="over") return {x:b.x+(left?-12:12),y:30};
+  if(kind==="bar")  return {x:b.x,y:50};
+  if(kind==="wide") return {x:left?36:364,y:174};
+  return {x:left?60:340,y:168}; // post
+}
+
+async function playKick(i){
+  S.animating=true; render();
+  const meShoot=shooterIsMe(i);
+  const r=kickResult(i), shot=r.shot, keep=r.keep;
+  resetScene();
+  let plan=keeperPlan(shot,keep);
+  let end=boxCenter(shot);
+  if(r.res==="save" && keep===5) end = shot===2?boxCenter(2) : shot===5?{x:200,y:134}:{x:200,y:186};
+  if(r.tip){ const K=boxCenter(keep), B=boxCenter(shot); end={x:B.x+(B.x<200?10:-10), y:lerp(B.y,K.y,.32)}; plan=planToPoint(end,keep); }
+  if(r.res==="miss") end=missPoint(shot,r.kind);
+  SFX.chant(false); SFX.whistle(1,.32);
+  await wait(250);
+  await tween(650,p=>{ const e=ease(p); setTaker(lerp(112,146,e),lerp(322,298,e)); });
+  const sx=200, sy=262, hist=[], endR=r.res==="miss"&&r.kind==="over"?4.4:5.4;
+  SFX.kick();
+  trail.setAttribute("opacity",.55);
+  await tween(560,p=>{
+    const bx=lerp(sx,end.x,p), by=lerp(sy,end.y,p)-22*Math.sin(Math.PI*p);
+    setBall(bx,by,lerp(10,endR,p));
+    hist.push([bx,by]); const tl=hist.slice(-4);
+    trail.setAttribute("d",tl.length>1?"M"+tl.map(q=>f1(q[0])+" "+f1(q[1]+6)).join(" L"):"");
+    setShadow(bx,lerp(270,199,Math.min(1,p*1.05)),lerp(10,5,p),lerp(.25,.15,p));
+    const kp=Math.max(0,Math.min(1,(p-.1)/.86)), ke=easeOut(kp);
+    const lift=plan.a!==0?16*Math.sin(Math.PI*ke):0;
+    setKeeper(lerp(200,plan.x,ke),lerp(166,plan.y,ke)-lift,plan.a*ke);
+  });
+  trail.setAttribute("opacity",0);
+  const sign=end.x<200?-1:1;
+  if(r.res==="save"){
+    SFX.thud(); SFX.ooh();
+    if(keep!==5){
+      const up=r.tip && shot<=3;
+      await tween(480,p=>{ const e=easeOut(p); setBall(end.x+sign*80*e,end.y+(up?-45:60)*e-30*Math.sin(Math.PI*e),lerp(5.4,up?4.5:8,e),1-p*.6); setShadow(end.x+sign*80*e,lerp(199,235,e),6,.2*(1-p)); });
+    }
+  } else if(r.res==="miss"){
+    SFX.ooh();
+    if(r.kind==="bar"||r.kind==="post"){
+      SFX.clang();
+      const to=r.kind==="bar"?{x:end.x+sign*25,y:236}:{x:end.x-sign*55,y:242};
+      await tween(520,p=>{ const e=easeOut(p); setBall(lerp(end.x,to.x,e),lerp(end.y,to.y,e)-(r.kind==="bar"?0:25*Math.sin(Math.PI*e)),lerp(5.4,8.5,e)); setShadow(lerp(end.x,to.x,e),lerp(199,to.y+6,e),6,.2); });
+    } else {
+      const to=r.kind==="over"?{x:end.x+sign*10,y:4}:{x:end.x+sign*30,y:170};
+      await tween(380,p=>{ setBall(lerp(end.x,to.x,p),lerp(end.y,to.y,p),lerp(endR,3.6,p),1-p*.8); });
+    }
+  } else {
+    SFX.net(); SFX.roar(); SFX.horn(); crowdCheer(2400);
+    const deep={x:end.x+(200-end.x)*.08,y:end.y-6};
+    swish.textContent=""; seed(i+1);
+    for(let k=0;k<3;k++) pencil(swish,rEllipse(deep.x,deep.y,9+k*6,6+k*4,.15),{w:1.4,o:.7-k*.15});
+    await tween(320,p=>{ setBall(lerp(end.x,deep.x,p),lerp(end.y,deep.y,p),lerp(5.4,4.4,p)); swish.setAttribute("opacity",p<.9?1:0); });
+  }
+  const goal=r.res==="goal", good=meShoot?goal:!goal;
+  const shooterName=meShoot?"You":S.oppName, keeperName=meShoot?S.oppName:"You";
+  const MISS={bar:"OFF THE BAR!",over:"OVER!",wide:"WIDE!",post:"OFF THE POST!"};
+  const MISSTXT={bar:"off the bar",over:"over the bar",wide:"wide",post:"off the post"};
+  const head = goal?"GOAL!" : r.res==="miss"?MISS[r.kind] : r.tip?"FINGERTIPS!":"SAVED!";
+  showBanner(head, good?"#3a9a2f":"#d9372b", `shot ${shot} · keeper ${keepLabel(keep)}`, head.length>8?44:62);
+  const dive = keep===5?"stayed in the middle":"dived to "+keep;
+  S.lastResult = r.res==="miss" ? `${shooterName} shot at ${shot} — ${MISSTXT[r.kind]}! (${keeperName} ${dive})`
+    : r.tip ? `${shooterName} shot at ${shot} · ${keeperName} ${dive} and tipped it away!`
+    : `${shooterName} shot at ${shot} · ${keeperName} ${dive}`;
+  await wait(400);
+  S.animating=false; S.shown=i+1; S.awaitingNext=true;
+  const w=outcome(S.shown);
+  if(w){ S.over=w; showEnd(); SFX.whistle(3,.3); SFX.roar(1.4); if(w==="me") setTimeout(()=>SFX.fanfare(),1300); }
+  render();
+}
+
+/* ---------- computer opponent ---------- */
+function myPicksByRole(role){ const out=[]; S.myPicks.forEach((v,i)=>{ if(shooterIsMe(i)===(role==="shoot")) out.push(v); }); return out; }
+function weighted(w){ const keys=Object.keys(w); let tot=0; keys.forEach(k=>tot+=w[k]); let r=Math.random()*tot; for(const k of keys){ r-=w[k]; if(r<=0) return +k; } return +keys[0]; }
+function aiPick(aiShoots){
+  if(aiShoots){
+    const w={1:3,2:1,3:3,4:2,5:1,6:2,7:3,8:1,9:3};
+    const keeps=myPicksByRole("keep");
+    if(keeps.length>=2){
+      const mid=keeps.filter(k=>k===5).length/keeps.length;
+      if(mid>.4){ w[2]=w[5]=w[8]=.3; }
+      keeps.forEach(k=>{ if(k!==5) w[k]=Math.max(.6,w[k]-.6); });
+    }
+    return weighted(w);
+  }
+  const shots=myPicksByRole("shoot");
+  if(shots.length>=2 && Math.random()<.35){
+    const cnt={}; shots.forEach(s=>cnt[s]=(cnt[s]||0)+1);
+    const fav=+Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+    return [2,5,8].includes(fav)?5:fav;
+  }
+  return weighted({1:1,3:1,4:1,6:1,7:1,9:1,5:1.6});
+}
+
+/* ---------- two-phone room ---------- */
+// Two connection backends with the same small interface (presence / peers / onPeers / onConnection / leave):
+//  - "claude": Claude's shared-page room, used when the game is opened as a Claude artifact
+//  - "peer":   PeerJS (WebRTC) for anywhere else, e.g. GitHub Pages. Needs internet to pair.
+let room=null, nroom=null, roomState="checking", conn=true, backend=null;
+async function initRoom(){
+  for(let k=0;k<10 && !(window.claude && window.claude.use);k++) await wait(100);
+  if(window.claude && window.claude.use){
+    try{ room=await window.claude.use("room"); }catch(e){ room=null; }
+    if(room){ backend="claude"; roomState="ok"; updRoomNote(); return; }
+  }
+  backend="peer"; roomState=("RTCPeerConnection" in window)?"ok":"none"; updRoomNote();
+}
+const PEERJS_URL="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
+function loadPeerJS(){ if(window.Peer) return Promise.resolve();
+  return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=PEERJS_URL; sc.onload=()=>res(); sc.onerror=()=>rej(new Error("peerjs-load")); document.head.appendChild(sc); }); }
+function peerJoin(code,isHost){
+  const id="paper-penalties-"+code.toLowerCase();
+  let peer, link=null, mine={}, theirs=null, done=false, retry=null;
+  const peersFns=[], connFns=[];
+  const list=()=>{ const l=[{peer:"me",sameTab:true,isMe:true,presence:mine}]; if(theirs && link && link.open) l.push({peer:"them",sameTab:false,isMe:false,presence:theirs}); return l; };
+  const emit=()=>{ const l=list(); peersFns.forEach(f=>f({peers:l})); };
+  const send=()=>{ if(link && link.open){ try{ link.send({t:"p",p:mine}); }catch(e){} } };
+  function attach(c){
+    link=c;
+    c.on("open",()=>{ clearInterval(retry); send(); emit(); });
+    c.on("data",d=>{ if(d && d.t==="p" && d.p && typeof d.p==="object"){ theirs=d.p; emit(); } });
+    c.on("close",()=>{ if(link===c){ theirs=null; link=null; emit(); if(!isHost) startRetry(); } });
+    c.on("error",()=>{});
+  }
+  function startRetry(){ clearInterval(retry); retry=setInterval(()=>{ if(link && link.open) return; if(peer && !peer.destroyed) attach(peer.connect(id,{reliable:true})); },2500); }
+  const api={
+    presence(patch){ Object.assign(mine,patch); send(); emit(); return Promise.resolve(); },
+    peers(){ return list(); },
+    onPeers(f){ peersFns.push(f); return ()=>{}; },
+    onConnection(f){ connFns.push(f); setTimeout(()=>f(true)); return ()=>{}; },
+    leave(){ clearInterval(retry); try{ peer.destroy(); }catch(e){} return Promise.resolve(); }
+  };
+  return loadPeerJS().then(()=>new Promise((res,rej)=>{
+    peer=isHost?new window.Peer(id):new window.Peer();
+    peer.on("open",()=>{
+      done=true;
+      if(isHost) peer.on("connection",c=>{ if(link && link.open){ c.close(); return; } attach(c); });
+      else { attach(peer.connect(id,{reliable:true})); startRetry(); }
+      res(api);
+    });
+    peer.on("error",e=>{ const t=e&&e.type;
+      if(!done){ try{ peer.destroy(); }catch(_){} rej(new Error(t==="unavailable-id"?"code-taken":"peer-error")); return; }
+      if(t==="peer-unavailable") return; // host not there yet; retry loop keeps trying
+    });
+    peer.on("disconnected",()=>{ connFns.forEach(f=>f(false)); setTimeout(()=>{ try{ if(!peer.destroyed) peer.reconnect(); }catch(_){} },1000); });
+    peer.on("open",()=>connFns.forEach(f=>f(true)));
+    setTimeout(()=>{ if(!done){ try{ peer.destroy(); }catch(_){} rej(new Error("timeout")); } },12000);
+  }));
+}
+function updRoomNote(){
+  const ok=roomState==="ok";
+  $("#btnHost").disabled=!ok; $("#btnJoin").disabled=!ok;
+  $("#roomNote").textContent = roomState==="checking" ? "Checking two-phone connection…"
+    : ok ? "Two phones: both open this page. One hosts, the other joins with the code."
+    : "Two-phone play isn't supported in this browser.";
+}
+function genCode(){ const A="ABCDEFGHJKMNPQRSTUVWXYZ"; let c=""; for(let i=0;i<4;i++) c+=A[Math.floor(Math.random()*A.length)]; return c; }
+function clean(n){ return String(n==null?"":n).replace(/[\u0000-\u001f\u007f]/g,"").slice(0,14); }
+function pushPresence(){ if(!nroom) return; nroom.presence({g:S.code,n:S.myName,h:S.host,m:S.m,p:S.myPicks.slice(),l:S.myLocked,pro:S.pro}).catch(()=>{}); }
+async function enterRoom(){
+  try{ nroom = backend==="claude" ? await room.join("nb-"+S.code.toLowerCase()) : await peerJoin(S.code,S.host); }
+  catch(e){ return e && e.message==="code-taken" ? "taken" : false; }
+  S.mode="p2p"; S.m=0; resetMatch();
+  nroom.onPeers(()=>sync(),()=>{});
+  nroom.onConnection(c=>{ conn=c; render(); },()=>{});
+  pushPresence();
+  return true;
+}
+function findOpp(){ if(!nroom) return null; return nroom.peers().find(p=>!p.sameTab && p.presence && p.presence.g===S.code && p.presence.h===!S.host)||null; }
+function sync(){
+  if(S.mode!=="p2p") return;
+  const opp=findOpp();
+  S.oppHere=!!opp;
+  if(!opp){ render(); return; }
+  const op=opp.presence;
+  S.oppName=clean(op.n)||"Opponent";
+  if(!S.host) S.pro=op.pro===true;
+  if(screen==="lobby"){ show("game"); startIntro(); }
+  S.oppM=Number(op.m)||0;
+  if(S.oppM!==S.m){ render(); return; }
+  S.oppPicks=(Array.isArray(op.p)?op.p:[]).map(v=>{ v=Math.floor(Number(v)); return v>=1&&v<=9?v:5; });
+  S.oppLocked=Number(op.l)||0;
+  const i=S.myPicks.length;
+  if(S.pending!=null && S.myLocked>i && S.oppLocked>i){ S.myPicks.push(S.pending); S.pending=null; pushPresence(); }
+  maybeAnimate(); render();
+}
+function maybeAnimate(){ if(S.animating||S.awaitingNext||S.over) return; if(S.shown<Math.min(S.myPicks.length,S.oppPicks.length)) playKick(S.shown); }
+
+/* ---------- flow ---------- */
+let screen="home";
+function show(s){ screen=s; for(const id of ["home","join","lobby","game"]) $("#"+id).classList.toggle("hidden",id!==s); window.scrollTo(0,0); }
+function getName(){ const n=clean($("#nameIn").value.trim())||"Player"; try{ localStorage.setItem("pp-name",n); }catch(e){} return n; }
+function resetMatch(){ Object.assign(S,{myPicks:[],oppPicks:[],myLocked:0,oppLocked:0,pending:null,shown:0,animating:false,awaitingNext:false,over:null,choice:null,lastResult:""}); $("#endPanel").classList.add("hidden"); }
+async function startIntro(){
+  resetScene(); S.intro=true; render();
+  showBanner("Coin toss!","#2b2b2b",`${S.pro?"Pro rules · ":""}You're the ${TEAMS[myTeam()].name} · ${firstShooterIsMe()?"you shoot":S.oppName+" shoots"} first`,48);
+  SFX.startCrowd();
+  await wait(1700);
+  S.intro=false; if(!S.animating && !S.awaitingNext) hideBanner();
+  try{ navigator.wakeLock && navigator.wakeLock.request("screen").catch(()=>{}); }catch(e){}
+  render();
+}
+function canPick(){
+  if(S.intro||S.animating||S.awaitingNext||S.over||S.pending!=null) return false;
+  if(S.myPicks.length!==S.shown) return false;
+  if(S.mode==="p2p") return S.oppHere && S.oppM===S.m;
+  return true;
+}
+function choose(b){ if(!canPick()) return; S.choice=b; highlight(); render(); }
+function lockIn(){
+  if(!canPick()||S.choice==null) return;
+  const i=S.shown, pick=S.choice;
+  if(S.mode==="cpu"){ S.myPicks.push(pick); S.oppPicks.push(aiPick(!shooterIsMe(i))); maybeAnimate(); render(); return; }
+  S.pending=pick; S.myLocked=i+1; pushPresence(); sync(); render();
+}
+function nextKick(){ S.awaitingNext=false; S.choice=null; S.lastResult=""; highlight(); resetScene(); render(); if(S.mode==="p2p") sync(); }
+function showEnd(){
+  const t=tally(S.shown);
+  $("#endWin").textContent = S.over==="me" ? "You win! 🏆" : `${S.oppName} wins!`;
+  $("#endScore").textContent = `${S.myName} ${t.me.goals} – ${t.opp.goals} ${S.oppName}`;
+  $("#endStats").textContent = `You scored ${t.me.goals} of ${t.me.att} · you saved ${t.me.saves} of ${t.opp.att}`;
+  $("#endPanel").classList.remove("hidden");
+}
+function rematch(){ S.m++; resetMatch(); highlight(); if(S.mode==="p2p") pushPresence(); startIntro(); if(S.mode==="p2p") sync(); }
+function leave(){ SFX.chant(false); SFX.stopCrowd(); if(nroom){ nroom.leave().catch(()=>{}); nroom=null; } S.mode=null; resetMatch(); show("home"); }
+
+/* ---------- render ---------- */
+function render(){
+  if(screen!=="game") return;
+  renderScore();
+  const picking=canPick(), iShoot=shooterIsMe(S.shown);
+  const showGrid=!S.animating && !S.awaitingNext && !S.over && !S.intro;
+  gridShoot.style.display=(showGrid && iShoot)?"":"none";
+  gridKeep.style.display=(showGrid && !iShoot)?"":"none";
+  SFX.chant(showGrid);
+  const sd=S.shown>=10 && !S.over ? "Sudden death! " : "";
+  let prompt="";
+  if(S.over) prompt="Full time";
+  else if(!(S.animating||S.awaitingNext||S.intro)) prompt=sd+(iShoot?"You're shooting — tap a box":"You're in goal — tap where to dive");
+  $("#prompt").textContent=prompt;
+  const lock=$("#btnLock"), next=$("#btnNext");
+  lock.classList.toggle("hidden",S.awaitingNext||!!S.over||S.animating);
+  lock.disabled=!(picking && S.choice!=null);
+  lock.textContent=S.pending!=null?"Locked in ✓":"Lock in";
+  next.classList.toggle("hidden",!(S.awaitingNext && !S.over));
+  let st="";
+  if(S.mode==="p2p"){
+    const opp=S.oppName||"Opponent";
+    if(!conn) st="Reconnecting…";
+    else if(!S.oppHere) st=`${opp} isn't connected — waiting for them to come back`;
+    else if(S.oppM>S.m) st=`${opp} wants a rematch — tap Rematch`;
+    else if(S.oppM<S.m) st=`Waiting for ${opp} to accept the rematch…`;
+    else if(S.awaitingNext||S.over) st=S.lastResult;
+    else if(S.animating) st="";
+    else if(S.pending!=null) st=S.oppLocked>S.shown?"Both locked in!":`Locked in ✓ — waiting for ${opp}…`;
+    else st=S.oppLocked>S.shown?`${opp} has locked in`:`${opp} is choosing…`;
+  } else st=(S.awaitingNext||S.over)?S.lastResult:"";
+  $("#status").textContent=st;
+}
+function renderScore(){
+  const sv=$("#score"); sv.textContent="";
+  const t=tally(S.shown);
+  const slots=Math.max(5,t.me.att,t.opp.att,S.over?0:Math.ceil((S.shown+1)/2));
+  const next=(S.over||S.awaitingNext||S.animating)?null:(shooterIsMe(S.shown)?"me":"opp");
+  const order=firstShooterIsMe()?["me","opp"]:["opp","me"];
+  seed(500); pencil(sv,rPoly([[4,6],[396,4],[397,99],[3,100]],true,1.2),{w:1.8});
+  pencil(sv,rLine(10,52,390,51,1),{w:1,o:.4});
+  const step=Math.min(31,214/Math.max(1,slots-1)), r=Math.min(11.5,step*.42);
+  order.forEach((side,row)=>{
+    const y=30+row*46;
+    const nm=side==="me"?S.myName:S.oppName;
+    txt(sv,nm.length>9?nm.slice(0,8)+"…":nm,{x:14,y:y+7,"font-size":22,"font-family":"Patrick Hand,cursive",fill:TEAMS[teamOf(side)].shirt});
+    for(let k=0;k<slots;k++){
+      const cx=124+k*step;
+      seed(hashCode(side)+k*13+row*101);
+      if(k<t[side].res.length){
+        const g=t[side].res[k];
+        hatch(sv,C(cx,y,r),[cx-r,y-r,2*r,2*r],g?"#3fae36":"#e0402f",{gap:2.2,w:2.6,o:.9,ang:g?-40:40,solid:.3});
+      }
+      const isNext=k===t[side].res.length && next===side;
+      pencil(sv,rEllipse(cx,y,r,r,.07),{w:isNext?2.6:1.4,c:isNext?"#2f5fc4":"#3a3a3a"});
+    }
+    txt(sv,String(t[side].goals),{x:388,y:y+12,"text-anchor":"end","font-size":34,"font-family":"Cabin Sketch,cursive","font-weight":700,fill:"#2b2b2b"});
+  });
+  grain(sv,400,104);
+}
+
+/* ---------- wiring ---------- */
+$("#btnCpu").onclick=()=>{ SFX.unlock(); S.pro=$("#proIn").checked; S.mode="cpu"; S.myName=getName(); S.oppName="Computer"; S.code="CPU"; S.host=true; S.m=Math.floor(Math.random()*2); resetMatch(); highlight(); show("game"); startIntro(); };
+$("#btnHost").onclick=async()=>{
+  SFX.unlock();
+  if(roomState!=="ok") return;
+  S.myName=getName(); S.host=true; S.pro=$("#proIn").checked;
+  $("#btnHost").disabled=true; $("#roomNote").textContent="Setting up a game…";
+  let ok=false; for(let k=0;k<3;k++){ S.code=genCode(); ok=await enterRoom(); if(ok!=="taken") break; }
+  ok=ok===true; $("#btnHost").disabled=false; updRoomNote();
+  if(!ok){ $("#roomNote").textContent="Couldn't open a game just now. Try again in a moment."; return; }
+  $("#lobbyTitle").textContent="Your game"; $("#lobbyCode").textContent=S.code;
+  $("#lobbyNote").textContent=(S.pro?"Pro rules. ":"")+"You're the Reds. On the other phone, open this page, tap Join a game and write in this code.";
+  show("lobby"); sync();
+};
+$("#btnJoin").onclick=()=>{ $("#joinNote").textContent=""; show("join"); setTimeout(()=>$("#codeIn").focus(),50); };
+$("#btnJoinBack").onclick=()=>show("home");
+$("#btnJoinGo").onclick=async()=>{
+  SFX.unlock();
+  const c=$("#codeIn").value.toUpperCase().replace(/[^A-Z]/g,"");
+  if(c.length!==4){ $("#joinNote").textContent="The code is 4 letters."; return; }
+  S.myName=getName(); S.host=false; S.code=c; S.pro=false;
+  $("#btnJoinGo").disabled=true; $("#joinNote").textContent="Connecting…"; const ok=(await enterRoom())===true; $("#btnJoinGo").disabled=false; $("#joinNote").textContent="";
+  if(!ok){ $("#joinNote").textContent="Couldn't join just now. Try again in a moment."; return; }
+  $("#lobbyTitle").textContent="Joining…"; $("#lobbyCode").textContent=S.code;
+  $("#lobbyNote").textContent="You're the Blues. Waiting for the host's phone…";
+  show("lobby"); sync();
+};
+$("#btnLobbyBack").onclick=leave;
+$("#btnLock").onclick=()=>{ SFX.unlock(); lockIn(); };
+$("#btnSound").onclick=()=>{ SFX.toggle(); soundLabel(); };
+$("#btnCrowd").onclick=()=>{ SFX.toggleCrowd(); soundLabel(); };
+function soundLabel(){ $("#btnSound").textContent=SFX.isOn()?"🔊 sound on":"🔇 sound off"; $("#btnCrowd").textContent=SFX.crowdIsOn()?"👥 crowd on":"👥 crowd off"; }
+soundLabel();
+$("#btnNext").onclick=nextKick;
+$("#btnRematch").onclick=rematch;
+$("#btnHome").onclick=leave;
+$("#btnQuit").onclick=leave;
+try{ $("#proIn").checked=localStorage.getItem("pp-pro")==="on"; }catch(e){}
+$("#proIn").onchange=()=>{ try{ localStorage.setItem("pp-pro",$("#proIn").checked?"on":"off"); }catch(e){} };
+try{ const n=localStorage.getItem("pp-name")||localStorage.getItem("nb-name"); if(n) $("#nameIn").value=n; }catch(e){}
+
+buildTitle(); buildScene(); resetScene(); highlight();
+initRoom();
+</script>
+</body>
+</html>
