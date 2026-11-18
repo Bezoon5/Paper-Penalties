@@ -2,6 +2,13 @@
 
 A hand-drawn penalty shootout for two phones, based on the paper game we play at home.
 
+<p align="center">
+  <img src="screenshots/title.png" alt="Paper Penalties title screen" width="250">
+  <img src="screenshots/pick-a-box.png" alt="Picking a box to shoot at" width="250">
+  <img src="screenshots/goal.png" alt="A goal, with the puppet keeper diving the wrong way" width="250">
+</p>
+<p align="center"><em>Title screen · picking a box · GOAL!</em></p>
+
 The goal is split into 9 boxes. The shooter secretly picks a box, the keeper secretly picks where to dive, and both phones show the kick at the same moment. Everything looks like it was drawn on a page of a school exercise book: pencil lines, crayon colouring, and a cut-out goalie on a lolly stick.
 
 ```
